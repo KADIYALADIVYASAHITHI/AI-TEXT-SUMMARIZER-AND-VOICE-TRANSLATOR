@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Summarizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #8b5cf6;
+            --accent-color: #06b6d4;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--gradient-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .background-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 100px;
+            height: 100px;
+            background: var(--accent-color);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 80px;
+            height: 80px;
+            background: var(--secondary-color);
+            top: 60%;
+            right: 20%;
+            animation-delay: 2s;
+        }
+
+        .shape-3 {
+            width: 120px;
+            height: 120px;
+            background: var(--success-color);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideInUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        .input-card {
+            animation-delay: 0.2s;
+        }
+
+        .output-card {
+            animation-delay: 0.4s;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--background);
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+            color: var(--text-secondary);
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+            transform: scale(1.02);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-textarea {
+            width: 100%;
+            min-height: 220px;
+            padding: 1.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+            line-height: 1.6;
+        }
+
+        .input-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: scale(1.01);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--primary-color);
+            border-radius: 16px;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(99, 102, 241, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.6s;
+        }
+
+        .file-upload:hover::before {
+            left: 100%;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-dark);
+            background: rgba(99, 102, 241, 0.05);
+            transform: scale(1.02);
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+        }
+
+        .file-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--gradient-primary);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            color: white;
+            transition: transform 0.3s ease;
+        }
+
+        .file-upload:hover .file-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .file-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            color: var(--success-color);
+            font-weight: 600;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .file-info.hidden {
+            display: none;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .option-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .option-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: var(--card-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .secondary-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--background);
+        }
+
+        .btn-clear {
+            padding: 0.5rem 1rem;
+            background: var(--gradient-secondary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+
+        .output-content {
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--background);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            font-size: 1rem;
+            line-height: 1.7;
+            position: relative;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .placeholder-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-accent);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            opacity: 0.7;
+        }
+
+        .output-item {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .output-item h4 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .output-text {
+            color: var(--text-primary);
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 64px;
+            height: 64px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        .loading-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .message {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            font-weight: 600;
+            box-shadow: var(--shadow-xl);
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.95);
+            color: white;
+            border-left: 4px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            border-left: 4px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Animations */
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .secondary-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+                border-radius: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+            
+            .secondary-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .message {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .output-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .output-content::-webkit-scrollbar-track {
+            background: var(--background);
+            border-radius: 4px;
+        }
+
+        .output-content::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .output-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-decoration">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>🧠 AI Text Summarizer</h1>
+            <p class="subtitle">Transform your content with AI-powered summarization, translation, and voice synthesis</p>
+        </header>
+
+        <main class="main-content">
+            <div class="card input-card">
+                <div class="section-title">
+                    <div class="section-icon">📝</div>
+                    Input
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="text">✨ Text Input</button>
+                    <button class="tab-btn" data-tab="file">📎 File Upload</button>
+                </div>
+
+                <div class="tab-content active" id="text-tab">
+                    <textarea 
+                        id="inputText" 
+                        class="input-textarea"
+                        placeholder="Enter your text here... Start typing or paste your content for AI-powered processing."
+                    ></textarea>
+                </div>
+
+                <div class="tab-content" id="file-tab">
+                    <div class="file-upload">
+                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx" />
+                        <label for="fileInput" class="file-label">
+                            <div class="file-icon">📁</div>
+                            <div class="file-title">Choose File</div>
+                            <div class="file-subtitle">or drag and drop (.txt, .pdf, .docx)</div>
+                        </label>
+                    </div>
+                    <div id="fileInfo" class="file-info hidden"></div>
+                </div>
+
+                <div class="options">
+                    <div class="option-group">
+                        <label class="option-label">Summary Mode</label>
+                        <select id="summaryMode" class="option-select">
+                            <option value="normal">🎯 Normal</option>
+                            <option value="detailed">📖 Detailed</option>
+                            <option value="bullets">📋 Bullet Points</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">Translate To</label>
+                        <select id="languageSelect" class="option-select">
+                            <option value="en" selected>🇬🇧 English</option>
+                            <option value="hi">🇮🇳 Hindi</option>
+                            <option value="ta">🇮🇳 Tamil</option>
+                            <option value="te">🇮🇳 Telugu</option>
+                            <option value="kn">🇮🇳 Kannada</option>
+                            <option value="ml">🇮🇳 Malayalam</option>
+                            <option value="bn">🇧🇩 Bengali</option>
+                            <option value="gu">🇮🇳 Gujarati</option>
+                            <option value="mr">🇮🇳 Marathi</option>
+                            <option value="pa">🇮🇳 Punjabi</option>
+                            <option value="or">🇮🇳 Odia</option>
+                            <option value="as">🇮🇳 Assamese</option>
+                            <option value="ur">🇵🇰 Urdu</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btnSummarize" class="btn btn-primary">
+                        <span>✨</span> Summarize Text
+                    </button>
+                    <div class="secondary-buttons">
+                        <button id="btnTranslate" class="btn btn-secondary">
+                            <span>🌐</span> Translate
+                        </button>
+                        <button id="btnTTS" class="btn btn-secondary">
+                            <span>🎤</span> Speak
+                        </button>
+                        <button id="btnPDF" class="btn btn-secondary">
+                            <span>📄</span> PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card output-card">
+                <div class="output-header">
+                    <div class="section-title">
+                        <div class="section-icon">🎯</div>
+                        Results
+                    </div>
+                    <button id="btnClear" class="btn-clear">🗑️ Clear</button>
+                </div>
+                
+                <div id="output" class="output-content">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">🚀</div>
+                        <p>Your AI-processed content will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing with AI magic...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL =  'http://127.0.0.1:5000';
+
+// Elements
+const elements = {
+    // Tabs
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    tabContents: document.querySelectorAll('.tab-content'),
+    
+    // Input
+    inputText: document.getElementById('inputText'),
+    fileInput: document.getElementById('fileInput'),
+    fileInfo: document.getElementById('fileInfo'),
+    summaryMode: document.getElementById('summaryMode'),
+    languageSelect: document.getElementById('languageSelect'),
+    
+    // Buttons
+    btnSummarize: document.getElementById('btnSummarize'),
+    btnTranslate: document.getElementById('btnTranslate'),
+    btnTTS: document.getElementById('btnTTS'),
+    btnPDF: document.getElementById('btnPDF'),
+    btnClear: document.getElementById('btnClear'),
+    
+    // Output
+    output: document.getElementById('output'),
+    loading: document.getElementById('loading')
+};
+
+// State
+let currentText = '';
+let currentSummary = '';
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+    setupFileUpload();
+});
+
+// Event Listeners
+function setupEventListeners() {
+    elements.tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+    
+    elements.btnSummarize.addEventListener('click', handleSummarize);
+    elements.btnTranslate.addEventListener('click', handleTranslate);
+    elements.btnTTS.addEventListener('click', handleTTS);
+    elements.btnPDF.addEventListener('click', handlePDF);
+    elements.btnClear.addEventListener('click', clearOutput);
+    
+    elements.fileInput.addEventListener('change', handleFileSelect);
+}
+
+// Tab Management
+function switchTab(tabName) {
+    elements.tabBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    
+    elements.tabContents.forEach(content => {
+        content.classList.toggle('active', content.id === `${tabName}-tab`);
+    });
+}
+
+// File Upload Setup
+function setupFileUpload() {
+    const dropZone = document.querySelector('.file-upload');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight(e) {
+        dropZone.style.borderColor = '#764ba2';
+        dropZone.style.background = '#f8f9ff';
+    }
+    
+    function unhighlight(e) {
+        dropZone.style.borderColor = '#667eea';
+        dropZone.style.background = 'transparent';
+    }
+    
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        elements.fileInput.files = files;
+        handleFileSelect();
+    }
+}
+
+// File Handling
+function handleFileSelect() {
+    const file = elements.fileInput.files[0];
+    if (!file) return;
+    
+    const fileInfo = `
+        <strong>Selected File:</strong> ${file.name}<br>
+        <strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+        <strong>Type:</strong> ${file.type || 'Unknown'}
+    `;
+    
+    elements.fileInfo.innerHTML = fileInfo;
+    elements.fileInfo.classList.remove('hidden');
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        if (file.type === 'text/plain') {
+            currentText = e.target.result;
+            elements.inputText.value = currentText;
+        } else {
+            currentText = '';
+        }
+    };
+    
+    if (file.type === 'text/plain') {
+        reader.readAsText(file);
+    }
+}
+
+// API Functions
+async function makeAPIRequest(endpoint, data, isFile = false) {
+    try {
+        showLoading(true);
+        
+        let response;
+        if (isFile) {
+            const formData = new FormData();
+            formData.append('file', elements.fileInput.files[0]);
+            formData.append('mode', elements.summaryMode.value);
+            
+            response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                body: formData
+            });
+        } else {
+            response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        }
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        if (endpoint === '/tts' || endpoint === '/download_pdf') {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = endpoint === '/tts' ? 'summary_audio.mp3' : 'summary.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            return { success: true };
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Action Handlers
+async function handleSummarize() {
+    try {
+        const text = elements.inputText.value.trim();
+        const file = elements.fileInput.files[0];
+        
+        if (!text && !file) {
+            showMessage('Please enter text or upload a file', 'error');
+            return;
+        }
+        
+        let result;
+        if (file) {
+            result = await makeAPIRequest('/summarize_file', {}, true);
+        } else {
+            result = await makeAPIRequest('/summarize', {
+                text: text,
+                mode: elements.summaryMode.value
+            });
+        }
+        
+        currentSummary = result.summary;
+        displayOutput(result.summary, 'Summary');
+        showMessage('Text summarized successfully!', 'success');
+        
+    } catch (error) {
+        showMessage('Error summarizing text: ' + error.message, 'error');
+    }
+}
+
+async function handleTranslate() {
+    try {
+        const text = currentSummary || elements.inputText.value.trim();
+        if (!text) {
+            showMessage('Please summarize text first or enter text to translate', 'error');
+            return;
+        }
+
+        // ✅ Default to English if not selected
+        const selectedLang = elements.languageSelect.value || "en";
+        const selectedLangName = elements.languageSelect.options[elements.languageSelect.selectedIndex]?.text || "English";
+
+        const result = await makeAPIRequest('/translate', { text, lang: selectedLang });
+
+        // ⬇️ FIXED: Only show the translated text, not the full JSON
+        if (result.error) {
+            displayOutput("❌ " + result.error, "Error");
+            showMessage('Error translating text: ' + result.error, 'error');
+        } else {
+            displayOutput(result.translated_text, `Translation (${selectedLangName})`);
+            showMessage(`Text translated to ${selectedLangName} successfully!`, 'success');
+        }
+
+    } catch (error) {
+        showMessage('Error translating text: ' + error.message, 'error');
+    }
+}
+
+
+async function handleTTS() {
+    try {
+        let text = "";
+        const selectedLang = elements.languageSelect.value || "en";
+        const selectedLangName = elements.languageSelect.options[elements.languageSelect.selectedIndex]?.text || "English";
+
+        if (elements.output.innerText.trim() && currentSummary) {
+            text = elements.output.innerText.trim();
+        } else {
+            text = elements.inputText.value.trim();
+        }
+
+        if (!text) {
+            showMessage('Please summarize or enter text for speech', 'error');
+            return;
+        }
+
+        const result = await makeAPIRequest('/tts', { text, lang: selectedLang });
+        const audio = new Audio(result.audio_url);
+        audio.play();
+
+        showMessage(`🎙️ Speaking in ${selectedLangName}`, 'success');
+
+    } catch (error) {
+        showMessage('Error generating speech: ' + error.message, 'error');
+    }
+}
+
+async function handlePDF() {
+    try {
+        const text = currentSummary || elements.inputText.value.trim();
+        if (!text) {
+            showMessage('Please summarize text first or enter text for PDF', 'error');
+            return;
+        }
+        
+        await makeAPIRequest('/download_pdf', { title: 'AI Text Summarizer - Summary', text });
+        showMessage('PDF downloaded successfully!', 'success');
+        
+    } catch (error) {
+        showMessage('Error generating PDF: ' + error.message, 'error');
+    }
+}
+
+// UI Functions
+function displayOutput(content, type) {
+    elements.output.innerHTML = `
+        <div class="output-item">
+            <h4>${type}</h4>
+            <div class="output-text">${content.replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+}
+
+function clearOutput() {
+    elements.output.innerHTML = `
+        <div class="placeholder">
+            <p>Your summarized text will appear here...</p>
+        </div>
+    `;
+    currentSummary = '';
+}
+
+function showLoading(show) {
+    elements.loading.classList.toggle('hidden', !show);
+}
+
+function showMessage(message, type) {
+    document.querySelectorAll('.message').forEach(msg => msg.remove());
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.textContent = message;
+    const container = document.querySelector('.container');
+    container.insertBefore(messageDiv, container.firstChild);
+    setTimeout(() => messageDiv.remove(), 5000);
+}
+
+// Utility
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+        
+
+
+</script>
